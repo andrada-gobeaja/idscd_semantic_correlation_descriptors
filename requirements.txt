@@ -1,0 +1,13 @@
+torch>=2.1
+transformers>=4.40
+datasets>=2.18
+accelerate>=0.28
+scikit-learn>=1.5,<1.9
+pandas>=2.0
+numpy>=1.24
+yake>=0.4.8
+matplotlib>=3.7
+seaborn>=0.13
+kagglehub>=0.3
+huggingface_hub>=0.20
+py7zr>=0.20
