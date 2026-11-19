@@ -100,17 +100,6 @@ Useful flags for `run_pipeline.py`:
 
 Each stage script in `pipeline/` can also be run on its own with the same `--group` / `--seed` arguments.
 
-## Outputs
-
-Results are written to `results/<group>/seed_<s>/`:
-
-- `contrib_vs_single_pearson.{png,pdf,csv}`: the $S_\Delta(i, j)$ heatmap and its values
-- `BEE_per_class_pearson_contribution_vs_single.png`: the per-class variant
-- `BEE_MIA_LOO_ROC_AUC_pearson.png` and `bee_loo_scores.npz`: membership ROC curve and scores
-- `summary.txt`: diagonal-dominance check and ROC-AUC values
-
-Checkpoints go to `models/<group>/seed_<s>/` and keyword/SCD caches to `cache/<group>/`.
-
 ## Citation
 
 ```bibtex
