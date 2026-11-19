@@ -24,11 +24,6 @@ import torch.nn as nn
 
 from .config import GroupConfig
 
-
-# ---------------------------------------------------------------------------
-# Seeding
-# ---------------------------------------------------------------------------
-
 def set_seed(seed: int, deterministic: bool = True) -> None:
     random.seed(seed)
     np.random.seed(seed)
@@ -46,10 +41,6 @@ def set_seed(seed: int, deterministic: bool = True) -> None:
 def get_device() -> str:
     return "cuda" if torch.cuda.is_available() else "cpu"
 
-
-# ---------------------------------------------------------------------------
-# Data loading
-# ---------------------------------------------------------------------------
 
 def load_group_csv(group: GroupConfig, path: Path, need_label: bool = True) -> pd.DataFrame:
     """
@@ -92,10 +83,6 @@ def encode_labels(df: pd.DataFrame, label_col: str) -> Tuple[pd.DataFrame, Dict[
     df["label_id"] = df[label_col].map(label2id).astype(int)
     return df, id2label, label2id
 
-
-# ---------------------------------------------------------------------------
-# BEE helpers
-# ---------------------------------------------------------------------------
 
 def normalize_embeddings(embeddings: np.ndarray) -> np.ndarray:
     """Normalise embeddings to unit length (Euclidean norm)."""
@@ -152,10 +139,6 @@ def pearson(a: np.ndarray, b: np.ndarray) -> float:
         return 0.0
     return float(np.corrcoef(a, b)[0, 1])
 
-
-# ---------------------------------------------------------------------------
-# Class-weighted Trainer (Stage 2 of training)
-# ---------------------------------------------------------------------------
 
 def make_weighted_trainer_class():
     """Import transformers lazily so that evaluation-only scripts stay light."""

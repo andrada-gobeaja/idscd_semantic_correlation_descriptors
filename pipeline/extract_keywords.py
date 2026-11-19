@@ -1,14 +1,5 @@
 """
-Stage 2 — YAKE keyword extraction per training configuration + global vocabulary U.
-
-  * for each configuration (full / N-1 / single) the training texts are joined
-    into one document and YAKE extracts `top_k` keywords
-    (n-gram <= 3, dedupLim = 0.9, language = en);
-  * class-name keywords and empty tokens are filtered out;
-  * the per-configuration lists are cached as JSON (seed independent: the
-    keywords only depend on the data);
-  * the global keyword pool U is the sorted union of all lists.
-
+Stage 2 : YAKE keyword extraction per training configuration + global vocabulary U.
 Usage:
     python pipeline/extract_keywords.py --group emotions
 """

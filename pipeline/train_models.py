@@ -1,15 +1,5 @@
 """
-Stage 1 — Train the model suite for one dataset group and one seed.
-
-For every training configuration (full, N-1 leave-one-out, single):
-
-  1. Causal-LM finetuning of EleutherAI/pythia-14m on the configuration's texts
-     (3 epochs, bs 32, lr 2e-5, wd 0.01, max_length 128)                -> clm_<cfg>/
-  2. Sequence-classification head initialised from the CLM checkpoint and
-     trained with class-weighted cross-entropy (3 epochs, bs 32, lr 2e-5) -> clf_<cfg>/
-
-The classifier checkpoints (clf_<cfg>/) are what the SCD stage consumes:
-`model.score.weight` gives the class vectors w_y and the backbone gives e_u.
+Stage 1 : Train the model suite for one dataset group and one seed.
 
 Usage:
     python pipeline/train_models.py --group medical --seed 42
@@ -116,7 +106,6 @@ def train_classifier(df, text_col: str, label_col: str, clm_dir: Path, out_dir: 
     tok.set_format(type="torch", columns=["input_ids", "attention_mask", "labels"])
     collator = DataCollatorWithPadding(tokenizer=tokenizer)
 
-    # no weight decay for the classification stage (TrainingArguments default)
     args = _training_args(out_dir, tc.clf_epochs, tc.clf_batch_size, tc.clf_lr, 0.0, seed, tc)
     WeightedTrainer = make_weighted_trainer_class()
     trainer = WeightedTrainer(model=model, args=args, train_dataset=tok,

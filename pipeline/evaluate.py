@@ -1,19 +1,5 @@
 """
-Stage 4 — Experiments on the SCDs (final step: the Pearson(Δ_i, d^(j)) heatmap).
-
-  (A) Leave-one-dataset-out diagnostic:
-        Δ_i          = d_SCD^(all) - d_SCD^(-i)          ("contribution" of dataset i)
-        S_Δ(i, j)    = Pearson(Δ_i, d_SCD^(j))
-      -> contribution_i vs single_j matrix, diagonal-dominance check, ROC-AUC of
-         diagonal (positives) vs off-diagonal (negatives), and the heatmap
-         contrib_vs_single_pearson.{png,pdf} (rows d_SCD^(j), columns Δ_i)
-      -> per-class variant of the same matrix (one heatmap per class + average)
-
-  (B) idSCD membership score:
-        s_SCD(i) = Pearson(d_SCD^(any), d_SCD^(i))
-      members     : m_any = m_all   (trained with D_i)
-      non-members : m_any = m_-i    (trained without D_i)
-      flat + per-class scores pooled -> ROC-AUC.
+Stage 4 : Experiments on the SCDs (final step: the Pearson(Δ_i, d^(j)) heatmap).
 
 Usage:
     python pipeline/evaluate.py --group medical --seed 42
@@ -40,10 +26,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # repository root
 from idscd.config import GroupConfig, Paths, add_common_args, resolve
 from idscd.common import pearson
 
-
-# ---------------------------------------------------------------------------
-# (A) contribution_i vs single_j: Pearson(Δ_i, d^(j))
-# ---------------------------------------------------------------------------
 
 def delta_descriptors(mats: Dict[str, np.ndarray], group: GroupConfig) -> List[np.ndarray]:
     """Δ_i = d^(all) - d^(-i), flattened."""
@@ -113,7 +95,6 @@ def plot_s_delta_heatmap(S: np.ndarray, names: List[str], out_stem: Path) -> Non
     x_labels = [rf"$\Delta_{{\mathrm{{{_tex(n)}}}}}$" for n in names]
     y_labels = [rf"$d_{{\mathrm{{SCD}}}}^{{(\mathrm{{{_tex(n)}}})}}$" for n in names]
 
-    # cell width grows with the longest dataset name so the Δ labels don't collide
     n = len(names)
     longest = max(len(x) for x in names)
     cell_w = max(1.4, 0.19 * longest + 0.4)
@@ -152,11 +133,6 @@ def plot_per_class_heatmaps(per_class: Dict[str, np.ndarray], avg: np.ndarray,
     plt.close(fig)
     print(f"Saved per-class heatmaps -> {out_path}")
 
-
-# ---------------------------------------------------------------------------
-# (B) idSCD membership score: Pearson(d^(any), d^(i))
-# ---------------------------------------------------------------------------
-
 def idscd_membership_scores(mats: Dict[str, np.ndarray], group: GroupConfig
                             ) -> Tuple[List[float], List[float], List[float], List[float]]:
     """
@@ -193,7 +169,7 @@ def plot_membership(fpr, tpr, roc_auc, member_flat, nonmember_flat, names, group
     axes[0].set_xlim([-0.02, 1.02]); axes[0].set_ylim([-0.02, 1.05])
     axes[0].set_xlabel("False Positive Rate", fontsize=12)
     axes[0].set_ylabel("True Positive Rate", fontsize=12)
-    axes[0].set_title(f"ROC — Leave-One-Out BEE MIA\n(Zero-Fill, Pearson, {group_name})",
+    axes[0].set_title(f"ROC Leave-One-Out BEE MIA\n(Zero-Fill, Pearson, {group_name})",
                       fontsize=14, fontweight="bold")
     axes[0].legend(loc="lower right", fontsize=11); axes[0].grid(True, alpha=0.3)
 
@@ -227,9 +203,8 @@ def run_evaluation(group: GroupConfig, paths: Paths, kw) -> np.ndarray:
     res = paths.results_dir
     print(f"group={group.name} seed={paths.seed}  |U|x|Y| = {mats['alpha_n'].shape}  results -> {res}")
 
-    # ---- (B) idSCD membership ROC-AUC -------------------------------------
     m_flat, nm_flat, m_cls, nm_cls = idscd_membership_scores(mats, group)
-    print("\nLeave-One-Out MIA — Zero-Fill BEE Pearson Correlation")
+    print("\nLeave-One-Out MIA Zero-Fill BEE Pearson Correlation")
     print(f"{'Dataset':<16} {'Member':>10} {'Non-member':>12} {'Delta':>8} {'Hit':>5}")
     for d, m, nm in zip(names, m_flat, nm_flat):
         print(f"{d:<16} {m:>10.4f} {nm:>12.4f} {m - nm:>+8.4f} {'Y' if m > nm else '':>5}")
@@ -241,7 +216,6 @@ def run_evaluation(group: GroupConfig, paths: Paths, kw) -> np.ndarray:
              nonmembers=np.array(nm_flat + nm_cls), fpr=fpr, tpr=tpr, auc=roc_auc)
     plot_membership(fpr, tpr, roc_auc, m_flat, nm_flat, names, group.name, res / "BEE_MIA_LOO_ROC_AUC_pearson.png")
 
-    # ---- (A) per-class contribution_i vs single_j --------------------------
     per_class = s_delta_per_class(mats, group)
     avg = np.mean([per_class[c] for c in group.labels], axis=0)
     for c_name, P in per_class.items():
@@ -250,10 +224,8 @@ def run_evaluation(group: GroupConfig, paths: Paths, kw) -> np.ndarray:
     report_matrix(avg, names, "Average Pearson(contribution_i, single_j) across all classes")
     plot_per_class_heatmaps(per_class, avg, names, res / "BEE_per_class_pearson_contribution_vs_single.png")
 
-    # ---- (A) final result: Pearson(Δ_i, d^(j)) heatmap ---------------------
     S = s_delta_matrix(mats, group)
-    report_matrix(S, names, "Contribution_i vs Single_j — Pearson Correlation (Zero-Fill)")
-    # saved in the same orientation as the heatmap: rows d_SCD^(j), columns Δ_i
+    report_matrix(S, names, "Contribution_i vs Single_j Pearson Correlation (Zero-Fill)")
     pd.DataFrame(S.T, index=[f"d_{d}" for d in names], columns=[f"delta_{d}" for d in names]) \
         .to_csv(res / "contrib_vs_single_pearson.csv", float_format="%.6f")
     with open(res / "summary.txt", "w") as f:

@@ -1,10 +1,7 @@
 """
-End-to-end driver: data -> models -> keywords -> SCDs -> Pearson(Δ_i, d^(j)) heatmap.
+End-to-end driver: models -> keywords -> SCDs -> Pearson(Δ_i, d^(j)) heatmap.
 
 Stages (any subset can be selected with --stages):
-    data      build the dataset CSVs with build_<group>_dataset.py
-              (emotions/medical: downloaded and rebuilt; nli: leave-one-out files
-              from the CSVs you provide)
     train     finetune Pythia-14M CLM + class-weighted classifier per configuration
     keywords  YAKE top-k (n<=3) keywords per configuration and union vocabulary
     scd       zero-fill aligned BEE matrices (SCDs) for every trained model
@@ -32,9 +29,8 @@ from pathlib import Path
 
 from idscd.config import add_common_args, resolve
 
-STAGES = ["data", "train", "keywords", "scd", "evaluate"]
+STAGES = ["train", "keywords", "scd", "evaluate"]
 SCRIPTS = {
-    "data": "data_prep/build_{group}_dataset.py",
     "train": "pipeline/train_models.py",
     "keywords": "pipeline/extract_keywords.py",
     "scd": "pipeline/compute_scd.py",
@@ -49,8 +45,6 @@ def main() -> None:
     parser.add_argument("--skip-existing", action="store_true",
                         help="train: skip configurations that already have a classifier checkpoint")
     parser.add_argument("--delete-clm", action="store_true", help="train: delete CLM checkpoints after stage 2")
-    parser.add_argument("--skip-download", action="store_true",
-                        help="data (emotions): use raw files already in data/emotions/raw/ instead of downloading")
     parser.add_argument("--model-id", default=None, help="train: base model id / local path")
     parser.add_argument("--epochs", type=int, default=None, help="train: override epochs (debugging)")
     args = parser.parse_args()
@@ -63,16 +57,11 @@ def main() -> None:
         + (["--delete-clm"] if args.delete_clm else []) \
         + (["--model-id", args.model_id] if args.model_id else []) \
         + (["--epochs", str(args.epochs)] if args.epochs is not None else [])
-    data_extra = ["--skip-download"] if (args.skip_download and group.name == "emotions") else []
 
     for stage in STAGES:
         if stage not in args.stages:
             continue
-        if stage == "data":  # the dataset builders only take --root
-            cmd = [sys.executable, str(here / SCRIPTS[stage].format(group=group.name)),
-                   "--root", str(paths.root)] + data_extra
-        else:
-            cmd = [sys.executable, str(here / SCRIPTS[stage])] + common + (train_extra if stage == "train" else [])
+        cmd = [sys.executable, str(here / SCRIPTS[stage])] + common + (train_extra if stage == "train" else [])
         print(f"\n{'#' * 78}\n# STAGE {stage}: {' '.join(cmd)}\n{'#' * 78}", flush=True)
         subprocess.run(cmd, check=True)
 

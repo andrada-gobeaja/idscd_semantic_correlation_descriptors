@@ -23,10 +23,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional
 
-# ---------------------------------------------------------------------------
-# Hyper-parameters
-# ---------------------------------------------------------------------------
-
 MODEL_ID = "EleutherAI/pythia-14m"
 DEFAULT_SEED = 42
 MULTI_SEEDS = [0, 1, 2, 3]
@@ -36,12 +32,10 @@ MULTI_SEEDS = [0, 1, 2, 3]
 class TrainConfig:
     model_id: str = MODEL_ID
     max_length: int = 128
-    # Stage 1: causal-LM finetuning
     clm_epochs: int = 3
     clm_batch_size: int = 32
     clm_lr: float = 2e-5
     clm_weight_decay: float = 0.01
-    # Stage 2: sequence-classification head (class-weighted CE)
     clf_epochs: int = 3
     clf_batch_size: int = 32
     clf_lr: float = 2e-5
@@ -58,30 +52,21 @@ class KeywordConfig:
     embed_batch_size: int = 64
 
 
-# ---------------------------------------------------------------------------
-# Dataset groups
-# ---------------------------------------------------------------------------
-
 @dataclass
 class GroupConfig:
     name: str
-    dataset_names: List[str]           # D_1 ... D_N (order used in the heatmaps)
-    labels: List[str]                  # canonical label order (alphabetical)
+    dataset_names: List[str]          
+    labels: List[str]                  
     text_col: str = "text"
     label_col: str = "label"
-    # Column used for YAKE keyword extraction (None -> same as text_col).
-    # The PubMed CSVs keep the original sentence column 'abstract_text' (same
-    # sentence as 'text'); YAKE reads it, training reads 'text'.
+   
     yake_text_col: Optional[str] = None
-    # Alternative column names that are normalised to text_col / label_col.
     text_col_aliases: List[str] = field(default_factory=list)
     label_col_aliases: List[str] = field(default_factory=list)
-    # CSV file names inside data/<group>/
     full_csv: str = "full.csv"
     single_csvs: Dict[str, str] = field(default_factory=dict)   # dataset -> file
     n1_csvs: Dict[str, str] = field(default_factory=dict)       # dataset -> file
 
-    # ----- derived helpers -------------------------------------------------
     @property
     def n1_keys(self) -> List[str]:
         return [f"n-1_no_{d}" for d in self.dataset_names]
@@ -136,7 +121,7 @@ NLI = GroupConfig(
     labels=["French", "German", "Italian", "Spanish", "Turkish"],
     text_col="text",
     label_col="l1",
-    full_csv="balanced_corpus.csv",
+    full_csv="all_datasets.csv",
     single_csvs={
         "reddit_l2": "reddit_l2_sub.csv",
         "efcamdat":  "efcamdat_sub.csv",
@@ -165,10 +150,6 @@ MEDICAL = GroupConfig(
 GROUPS: Dict[str, GroupConfig] = {g.name: g for g in (EMOTIONS, NLI, MEDICAL)}
 
 
-# ---------------------------------------------------------------------------
-# Paths
-# ---------------------------------------------------------------------------
-
 @dataclass
 class Paths:
     root: Path
@@ -181,7 +162,7 @@ class Paths:
 
     @property
     def raw_dir(self) -> Path:
-        """Downloaded / original source files (used by the build_<group>_dataset.py scripts)."""
+        """Downloaded / original source files (not used by the pipeline; the dataset CSVs are committed under data/)."""
         return self.root / "data" / self.group / "raw"
 
     @property

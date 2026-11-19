@@ -1,17 +1,4 @@
 """
-Optional — Cross-seed stability heatmap.
-
-Compares the leave-one-out change Δ_i computed from one reference seed
-(SEED_X, default 42) with the standalone descriptors d_SCD^(j) of models
-trained with other seeds (SEEDS_Y):
-
-    M[(s, j), i] = Pearson(Δ_i^(seed_x), d_SCD^(j), seed s)
-
-Rows are grouped by seed (separated by a black line), columns are Δ_i.
-Requires the aligned-matrix cache of every seed involved
-(run compute_scd.py --seed <s> for each); all caches share the same
-vocabulary U because the YAKE keywords are seed independent.
-
 Usage:
     python pipeline/cross_seed_heatmap.py --group emotions --seed-x 42 --seeds-y 42 0 1 2 3
 """

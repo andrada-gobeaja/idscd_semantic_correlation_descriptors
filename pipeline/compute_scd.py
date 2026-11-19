@@ -1,5 +1,5 @@
 """
-Stage 3 — Semantic Correlation Descriptors (SCDs) with zero-fill alignment.
+Stage 3 : Semantic Correlation Descriptors (SCDs) with zero-fill alignment.
 
 For every trained classifier m:
 
@@ -49,7 +49,7 @@ def resolve_model_paths(group: GroupConfig, paths: Paths) -> Dict[str, Path]:
     for k, d in missing:
         print(f"  {k:<22s} !! not found: {d}")
     if missing:
-        raise FileNotFoundError(f"{len(missing)} classifier checkpoint(s) unresolved — run train_models.py first.")
+        raise FileNotFoundError(f"{len(missing)} classifier checkpoint(s) unresolved, run train_models.py first.")
     return model_paths
 
 
@@ -61,17 +61,14 @@ def scd_matrix_for_model(model_path: Path, own_keywords: List[str], canonical_la
     tokenizer.pad_token = tokenizer.eos_token
     model = AutoModelForSequenceClassification.from_pretrained(model_path).to(device).eval()
 
-    # class directions w_y from the sequence-classification head
     classifier_weights = model.score.weight.detach().float().cpu().numpy()
     classifier_weights_norm = normalize_embeddings(classifier_weights)
 
-    # keyword embeddings e_u using only this model's OWN keywords
     kw_emb = embed_text_list(own_keywords, model, tokenizer, batch_size=kw.embed_batch_size, max_length=128)
     kw_emb_norm = normalize_embeddings(kw_emb)
 
     sc_scores = bee_scores(classifier_weights_norm, kw_emb_norm)   # (num_model_labels, num_own)
 
-    # map model label order -> canonical label order
     own_bee = np.zeros((len(own_keywords), len(canonical_labels)))
     id2label = {int(i): str(l) for i, l in model.config.id2label.items()}
     if [id2label.get(i) for i in range(len(canonical_labels))] == canonical_labels:
